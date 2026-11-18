@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stok Pintar Minimarket — Sistem Manajemen Inventaris & Gudang (Supabase Connected)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback } = React;
+
+    // ============================================================================
+    // SUPABASE CONFIGURATION (.env.local equivalent)
+    // ============================================================================
+    const SUPABASE_URL = "https://ifndyxpdcvjihdrirrhj.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tP4eT2jBMN9rf6RVSgu27w_Pab3mJvi";
+    const supabaseClient = window.supabase
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+      : null;
+
+    const INITIAL_MASTER_STOK = [
+      {
+        SKU: "BRG-001",
+        Nama_Produk: "Beras Premium Pandan Wangi 5kg",
+        Kategori: "Sembako",
+        Harga_Beli: 64000,
+        Harga_Jual: 74500,
+        Stok_Saat_Ini: 42,
+        Batas_Minimum: 15,
+        Lokasi_Rak: "RAK-A1",
+      },
+      {
+        SKU: "BRG-002",
+        Nama_Produk: "Minyak Goreng Sawit Pouch 2L",
+        Kategori: "Sembako",
+        Harga_Beli: 31500,
+        Harga_Jual: 36000,
+        Stok_Saat_Ini: 8,
+        Batas_Minimum: 20,
+        Lokasi_Rak: "RAK-A2",
+      },
+      {
+        SKU: "BRG-003",
+        Nama_Produk: "Gula Pasir Kristal Putih 1kg",
+        Kategori: "Sembako",
+        Harga_Beli: 15200,
+        Harga_Jual: 17500,
+        Stok_Saat_Ini: 12,
+        Batas_Minimum: 25,
+        Lokasi_Rak: "RAK-A3",
+      },
+      {
+        SKU: "BRG-004",
+        Nama_Produk: "Kopi Arabika Gayo Roast Bean 250g",
+        Kategori: "Minuman",
+        Harga_Beli: 45000,
+        Harga_Jual: 62000,
+        Stok_Saat_Ini: 28,
+        Batas_Minimum: 10,
+        Lokasi_Rak: "RAK-B1",
+      },
+      {
+        SKU: "BRG-005",
+        Nama_Produk: "Susu Evaporasi Full Cream 400g",
+        Kategori: "Bahan Baku",
+        Harga_Beli: 14800,
+        Harga_Jual: 18500,
+        Stok_Saat_Ini: 5,
+        Batas_Minimum: 12,
+        Lokasi_Rak: "RAK-B2",
+      },
+      {
+        SKU: "BRG-006",
+        Nama_Produk: "Cup Plastik Injection 16oz (Pak 50pcs)",
+        Kategori: "Kemasan",
+        Harga_Beli: 22000,
+        Harga_Jual: 29000,
+        Stok_Saat_Ini: 35,
+        Batas_Minimum: 10,
+        Lokasi_Rak: "RAK-C1",
+      },
+      {
+        SKU: "BRG-007",
+        Nama_Produk: "Paper Bowl Kraft 650ml + Lid (Pak 25pcs)",
+        Kategori: "Kemasan",
+        Harga_Beli: 27500,
+        Harga_Jual: 35000,
+        Stok_Saat_Ini: 6,
+        Batas_Minimum: 10,
+        Lokasi_Rak: "RAK-C2",
+      },
+      {
+        SKU: "BRG-008",
+        Nama_Produk: "Tepung Terigu Protein Tinggi 1kg",
+        Kategori: "Bahan Baku",
+        Harga_Beli: 11800,
+        Harga_Jual: 14500,
+        Stok_Saat_Ini: 54,
+        Batas_Minimum: 20,
+        Lokasi_Rak: "RAK-A4",
+      },
+    ];
+
+    const INITIAL_LOG_TRANSAKSI = [
+      {
+        ID_Transaksi: "TRX-20261112-001",
+        Tanggal: "2026-11-12T08:30:00.000Z",
+        Jenis: "Masuk",
+        SKU: "BRG-001",
+        Jumlah: 30,
+        Keterangan: "Restock mingguan Supplier Beras Makmur",
+        User: "Budi (Admin)",
+      },
+      {
+        ID_Transaksi: "TRX-20261113-002",
+        Tanggal: "2026-11-13T10:15:00.000Z",
+        Jenis: "Keluar",
+        SKU: "BRG-002",
+        Jumlah: 18,
+        Keterangan: "Pesanan Grosir Warung Bu Siti",
+        User: "Rina (Staff Gudang)",
+      },
+      {
+        ID_Transaksi: "TRX-20261114-003",
+        Tanggal: "2026-11-14T13:45:00.000Z",
+        Jenis: "Masuk",
+        SKU: "BRG-004",
+        Jumlah: 20,
+        Keterangan: "Pengiriman Roastery Aceh Gayo",
+        User: "Budi (Admin)",
+      },
+      {
+        ID_Transaksi: "TRX-20261115-004",
+        Tanggal: "2026-11-15T15:20:00.000Z",
+        Jenis: "Keluar",
+        SKU: "BRG-003",
+        Jumlah: 15,
+        Keterangan: "Penjualan toko & pemakaian produksi",
+        User: "Rina (Staff Gudang)",
+      },
+      {
+        ID_Transaksi: "TRX-20261116-005",
+        Tanggal: "2026-11-16T09:10:00.000Z",
+        Jenis: "Keluar",
+        SKU: "BRG-005",
+        Jumlah: 10,
+        Keterangan: "Pengiriman cabang Kedai Kopi",
+        User: "Rina (Staff Gudang)",
+      },
+      {
+        ID_Transaksi: "TRX-20261117-006",
+        Tanggal: "2026-11-17T11:05:00.000Z",
+        Jenis: "Masuk",
+        SKU: "BRG-008",
+        Jumlah: 25,
+        Keterangan: "Restock Distributor Bogasari",
+        User: "Budi (Admin)",
+      },
+      {
+        ID_Transaksi: "TRX-20261118-007",
+        Tanggal: "2026-11-18T08:00:00.000Z",
+        Jenis: "Keluar",
+        SKU: "BRG-007",
+        Jumlah: 8,
+        Keterangan: "Order katering harian pelanggan",
+        User: "Rina (Staff Gudang)",
+      },
+    ];
+
+    function formatRupiah(num) {
+      return "Rp " + Math.round(num || 0).toLocaleString("id-ID");
+    }
+
+    function buildWebhookPayload(inventory, triggeredBy = "System_Auto_Monitor") {
+      const critical = inventory
+        .filter((item) => item.Stok_Saat_Ini <= item.Batas_Minimum)
+        .map((item) => {
+          const defisit = Math.max(0, item.Batas_Minimum - item.Stok_Saat_Ini);
+          const rekomendasiOrder = Math.max(
+            item.Batas_Minimum * 2 - item.Stok_Saat_Ini,
+            item.Batas_Minimum
+          );
+          return {
+            SKU: item.SKU,
+            Nama_Produk: item.Nama_Produk,
+            Kategori: item.Kategori,
+            Stok_Saat_Ini: item.Stok_Saat_Ini,
+            Batas_Minimum: item.Batas_Minimum,
+            Defisit: defisit,
+            Rekomendasi_Order: rekomendasiOrder,
+            Lokasi_Rak: item.Lokasi_Rak,
+            Estimasi_Biaya_Restock: rekomendasiOrder * item.Harga_Beli,
+            Status: item.Stok_Saat_Ini <= 0 ? "HABIS" : "KRITIS",
+          };
+        });
+
+      const totalRestockCost = critical.reduce((s, i) => s + i.Estimasi_Biaya_Restock, 0);
+      const lines = [
+        `⚠️ *PERINGATAN STOK KRITIS GUDANG UMKM*`,
+        `📅 Waktu: ${new Date().toLocaleString("id-ID")}`,
+        `👤 Pemicu: ${triggeredBy}`,
+        `📦 Total Item Kritis: *${critical.length} Produk*`,
+        ``,
+        ...critical.map(
+          (i, idx) =>
+            `${idx + 1}. *${i.Nama_Produk}* (\`${i.SKU}\`)\n   • Stok: *${i.Stok_Saat_Ini}* / Min: ${i.Batas_Minimum} [${i.Status}]\n   • Rak: ${i.Lokasi_Rak} | Saran Order: +${i.Rekomendasi_Order} unit`
+        ),
+        ``,
+        `💰 Estimasi Biaya Restock: *${formatRupiah(totalRestockCost)}*`,
+      ];
+
+      return {
+        event: "LOW_STOCK_ALERT",
+        timestamp: new Date().toISOString(),
+        source: "UMKM_Inventory_System",
+        triggered_by: triggeredBy,
+        summary: {
+          critical_items_count: critical.length,
+          total_estimated_restock_cost_idr: totalRestockCost,
+        },
+        telegram_message_markdown: lines.join("\n"),
+        items: critical,
+      };
+    }
+
+    function App() {
+      const [activeTab, setActiveTab] = useState("dashboard");
+      const [role, setRole] = useState("Admin");
+      const [preselectedSku, setPreselectedSku] = useState(null);
+
+      // Supabase Connection States
+      const [sbStatus, setSbStatus] = useState("checking"); // "checking" | "connected" | "needs_migration" | "error"
+      const [sbMessage, setSbMessage] = useState("Menghubungkan ke Supabase...");
+      const [todos, setTodos] = useState([]);
+
+      const [inventory, setInventory] = useState(() => {
+        const saved = localStorage.getItem("umkm_master_stok_v1");
+        return saved ? JSON.parse(saved) : INITIAL_MASTER_STOK;
+      });
+
+      const [transactions, setTransactions] = useState(() => {
+        const saved = localStorage.getItem("umkm_log_transaksi_v1");
+        return saved ? JSON.parse(saved) : INITIAL_LOG_TRANSAKSI;
+      });
+
+      // Sync with Supabase on load
+      const syncFromSupabase = useCallback(async () => {
+        if (!supabaseClient) {
+          setSbStatus("error");
+          setSbMessage("SDK Supabase tidak termuat.");
+          return;
+        }
+        setSbStatus("checking");
+        try {
+          // 1. Check todos table (from user's snippet)
+          const todosRes = await supabaseClient.from("todos").select("*");
+          if (!todosRes.error && todosRes.data) {
+            setTodos(todosRes.data);
+          }
+
+          // 2. Check master_stok & log_transaksi tables
+          const { data: stokData, error: stokErr } = await supabaseClient
+            .from("master_stok")
+            .select("*")
+            .order("SKU", { ascending: true });
+
+          if (stokErr) {
+            setSbStatus("needs_migration");
+            setSbMessage(
+              `Terhubung ke Supabase (${SUPABASE_URL}), namun tabel 'master_stok' belum dibuat (${stokErr.message}). Jalankan SQL Migration di tab Supabase.`
+            );
+            return;
+          }
+
+          const { data: trxData } = await supabaseClient
+            .from("log_transaksi")
+            .select("*")
+            .order("Tanggal", { ascending: false });
+
+          if (stokData && stokData.length > 0) {
+            setInventory(stokData);
+          }
+          if (trxData && trxData.length > 0) {
+            setTransactions(trxData);
+          }
+
+          setSbStatus("connected");
+          setSbMessage(
+            `Terhubung ke Supabase Cloud (${
+              stokData ? stokData.length : 0
+            } SKU di tabel master_stok)`
+          );
+        } catch (err) {
+          setSbStatus("error");
+          setSbMessage(err.message || "Gagal menghubungi Supabase");
+        }
+      }, []);
+
+      useEffect(() => {
+        syncFromSupabase();
+      }, [syncFromSupabase]);
+
+      useEffect(() => {
+        localStorage.setItem("umkm_master_stok_v1", JSON.stringify(inventory));
+      }, [inventory]);
+
+      useEffect(() => {
+        localStorage.setItem("umkm_log_transaksi_v1", JSON.stringify(transactions));
+      }, [transactions]);
+
+      const seedToSupabase = async () => {
+        if (!supabaseClient) return;
+        const { error: e1 } = await supabaseClient
+          .from("master_stok")
+          .upsert(INITIAL_MASTER_STOK, { onConflict: "SKU" });
+        if (e1) {
+          alert(
+            `Gagal upload ke master_stok: ${e1.message}\nPastikan Anda sudah menjalankan SQL Migration di Supabase SQL Editor.`
+          );
+          return;
+        }
+        const { error: e2 } = await supabaseClient
+          .from("log_transaksi")
+          .upsert(INITIAL_LOG_TRANSAKSI, { onConflict: "ID_Transaksi" });
+        if (e2) {
+          alert(`Gagal upload ke log_transaksi: ${e2.message}`);
+          return;
+        }
+        await syncFromSupabase();
+        alert("✅ Data awal Master_Stok dan Log_Transaksi berhasil disinkronkan ke Supabase!");
+      };
+
+      // Aggregated Ringkasan_Dashboard
+      const dashboardData = useMemo(() => {
+        const totalProduk = inventory.length;
+        const totalUnitStok = inventory.reduce((s, i) => s + Number(i.Stok_Saat_Ini), 0);
+        const totalNilaiStok = inventory.reduce(
+          (s, i) => s + Number(i.Stok_Saat_Ini) * Number(i.Harga_Beli),
+          0
+        );
+        const totalNilaiJual = inventory.reduce(
+          (s, i) => s + Number(i.Stok_Saat_Ini) * Number(i.Harga_Jual),
+          0
+        );
+        const criticalItems = inventory.filter(
+          (i) => Number(i.Stok_Saat_Ini) <= Number(i.Batas_Minimum)
+        );
+
+        const totalMasuk = transactions
+          .filter((t) => t.Jenis === "Masuk")
+          .reduce((s, t) => s + Number(t.Jumlah), 0);
+        const totalKeluar = transactions
+          .filter((t) => t.Jenis === "Keluar")
+          .reduce((s, t) => s + Number(t.Jumlah), 0);
+
+        const dayMap = new Map();
+        const baseDate = new Date("2026-11-18T12:00:00Z");
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(baseDate);
+          d.setDate(d.getDate() - i);
+          const key = d.toISOString().slice(0, 10);
+          const label = d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+          dayMap.set(key, { tanggal: key, label, masuk: 0, keluar: 0 });
+        }
+
+        transactions.forEach((trx) => {
+          const key = trx.Tanggal.slice(0, 10);
+          if (!dayMap.has(key)) {
+            const d = new Date(trx.Tanggal);
+            const label = d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+            dayMap.set(key, { tanggal: key, label, masuk: 0, keluar: 0 });
+          }
+          const entry = dayMap.get(key);
+          if (trx.Jenis === "Masuk") entry.masuk += Number(trx.Jumlah);
+          else entry.keluar += Number(trx.Jumlah);
+        });
+
+        const dailyMovements = Array.from(dayMap.values())
+          .sort((a, b) => a.tanggal.localeCompare(b.tanggal))
+          .slice(-7);
+
+        const catMap = new Map();
+        inventory.forEach((item) => {
+          const current = catMap.get(item.Kategori) || {
+            kategori: item.Kategori,
+            jumlahProduk: 0,
+            totalUnit: 0,
+            nilaiStok: 0,
+          };
+          current.jumlahProduk += 1;
+          current.totalUnit += Number(item.Stok_Saat_Ini);
+          current.nilaiStok += Number(item.Stok_Saat_Ini) * Number(item.Harga_Beli);
+          catMap.set(item.Kategori, current);
+        });
+
+        const skuMap = new Map(inventory.map((p) => [p.SKU, p.Nama_Produk]));
+        const enrichedTransactions = [...transactions]
+          .sort((a, b) => new Date(b.Tanggal) - new Date(a.Tanggal))
+          .map((t) => ({
+            ...t,
+            Nama_Produk: skuMap.get(t.SKU) || t.Nama_Produk || "Produk",
+          }));
+
+        return {
+          ringkasan: {
+            Total_Produk: totalProduk,
+            Total_Unit_Stok: totalUnitStok,
+            Total_Nilai_Stok: totalNilaiStok,
+            Total_Nilai_Jual: totalNilaiJual,
+            Estimasi_Potensi_Laba: totalNilaiJual - totalNilaiStok,
+            Jumlah_Stok_Kritis: criticalItems.length,
+            Total_Transaksi_Masuk: totalMasuk,
+            Total_Transaksi_Keluar: totalKeluar,
+          },
+          criticalItems,
+          dailyMovements,
+          categorySummary: Array.from(catMap.values()),
+          enrichedTransactions,
+          webhookPreview: buildWebhookPayload(inventory, `${role}_Session`),
+        };
+      }, [inventory, transactions, role]);
+
+      // Handlers (Dual-write to Local + Supabase if connected)
+      const handleSaveProduct = async (product, isNew) => {
+        if (role !== "Admin") {
+          throw new Error("Akses Ditolak (RBAC): Hanya Admin yang dapat mengubah Master_Stok.");
+        }
+        const sku = product.SKU.trim().toUpperCase();
+        const exists = inventory.some((i) => i.SKU.toUpperCase() === sku);
+        if (isNew && exists) {
+          throw new Error(`SKU "${sku}" sudah digunakan.`);
+        }
+        const clean = {
+          SKU: sku,
+          Nama_Produk: product.Nama_Produk.trim(),
+          Kategori: product.Kategori.trim(),
+          Harga_Beli: Number(product.Harga_Beli),
+          Harga_Jual: Number(product.Harga_Jual),
+          Stok_Saat_Ini: Number(product.Stok_Saat_Ini),
+          Batas_Minimum: Number(product.Batas_Minimum),
+          Lokasi_Rak: product.Lokasi_Rak.trim().toUpperCase(),
+        };
+
+        if (sbStatus === "connected" && supabaseClient) {
+          await supabaseClient.from("master_stok").upsert(clean, { onConflict: "SKU" });
+        }
+
+        if (isNew) {
+          setInventory((prev) => [...prev, clean]);
+        } else {
+          setInventory((prev) => prev.map((i) => (i.SKU === sku ? clean : i)));
+        }
+      };
+
+      const handleDeleteProduct = async (sku) => {
+        if (role !== "Admin") return;
+        if (!window.confirm(`Hapus produk ${sku} dari Master_Stok?`)) return;
+        if (sbStatus === "connected" && supabaseClient) {
+          await supabaseClient.from("master_stok").delete().eq("SKU", sku);
+        }
+        setInventory((prev) => prev.filter((i) => i.SKU !== sku));
+      };
+
+      const handleCreateTransaction = async ({ Jenis, SKU, Jumlah, Keterangan, User }) => {
+        const idx = inventory.findIndex((p) => p.SKU === SKU);
+        if (idx === -1) throw new Error("SKU Produk tidak ditemukan.");
+        const prod = inventory[idx];
+        const qty = Number(Jumlah);
+        if (Jenis === "Keluar" && prod.Stok_Saat_Ini < qty) {
+          throw new Error(`Stok tidak mencukupi! Stok saat ini: ${prod.Stok_Saat_Ini}`);
+        }
+        const newStok = Jenis === "Masuk" ? prod.Stok_Saat_Ini + qty : prod.Stok_Saat_Ini - qty;
+
+        const seq = String(transactions.length + 1).padStart(3, "0");
+        const newTrx = {
+          ID_Transaksi: `TRX-20261118-${seq}`,
+          Tanggal: new Date().toISOString(),
+          Jenis,
+          SKU,
+          Jumlah: qty,
+          Keterangan,
+          User,
+        };
+
+        if (sbStatus === "connected" && supabaseClient) {
+          await supabaseClient
+            .from("master_stok")
+            .update({ Stok_Saat_Ini: newStok })
+            .eq("SKU", SKU);
+          await supabaseClient.from("log_transaksi").insert(newTrx);
+        }
+
+        setInventory((prev) =>
+          prev.map((item) => (item.SKU === SKU ? { ...item, Stok_Saat_Ini: newStok } : item))
+        );
+        setTransactions((prev) => [newTrx, ...prev]);
+      };
+
+      const handleQuickRestock = (sku) => {
+        setPreselectedSku(sku);
+        setActiveTab("transactions");
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* Top Supabase Connection Status Bar */}
+          <div
+            className={`px-4 py-1.5 text-xs font-medium flex items-center justify-between ${
+              sbStatus === "connected"
+                ? "bg-emerald-900 text-emerald-100"
+                : sbStatus === "needs_migration"
+                ? "bg-amber-900 text-amber-100"
+                : "bg-slate-900 text-slate-200"
+            }`}
+          >
+            <div className="flex items-center gap-2 truncate">
+              <span
+                className={`w-2 h-2 rounded-full inline-block ${
+                  sbStatus === "connected"
+                    ? "bg-emerald-400"
+                    : sbStatus === "needs_migration"
+                    ? "bg-amber-400"
+                    : "bg-sky-400"
+                }`}
+              />
+              <span className="truncate">
+                <strong>Supabase:</strong> {sbMessage}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => setActiveTab("supabase")}
+                className="underline hover:text-white font-semibold"
+              >
+                ⚡ Konfigurasi & SQL Supabase
+              </button>
+              <button
+                onClick={syncFromSupabase}
+                className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[11px] font-semibold"
+              >
+                🔄 Sync
+              </button>
+            </div>
+          </div>
+
+          {/* Header */}
+          <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between py-3 gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
+                      📦
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+                          Stok Pintar Minimarket
+                        </h1>
+                        <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Supabase Cloud
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Sistem Manajemen Inventaris & Otomasi Stok Real-Time
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nav */}
+                <nav className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
+                  {[
+                    { id: "dashboard", label: "📊 Dashboard" },
+                    {
+                      id: "inventory",
+                      label: "📦 Master Stok",
+                      badge: dashboardData.ringkasan.Jumlah_Stok_Kritis,
+                    },
+                    { id: "transactions", label: "🔄 Transaksi Masuk/Keluar" },
+                    {
+                      id: "automation",
+                      label: "🔔 Alert & Webhook n8n",
+                      badge: dashboardData.ringkasan.Jumlah_Stok_Kritis,
+                    },
+                    { id: "supabase", label: "⚡ Supabase & Todos" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition ${
+                        activeTab === tab.id
+                          ? "bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm"
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      {tab.badge > 0 && (
+                        <span className="px-1.5 py-0.2 text-[11px] font-bold rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </nav>
+
+                {/* Role Switcher */}
+                <div className="flex items-center justify-between md:justify-end gap-3">
+                  <div className="text-left md:text-right">
+                    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                      Simulasi RBAC Role
+                    </div>
+                    <div className="text-xs font-semibold text-slate-700">
+                      {role === "Admin" ? "Budi (Admin - Full Access)" : "Rina (Staff - Input Only)"}
+                    </div>
+                  </div>
+                  <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button
+                      onClick={() => setRole("Admin")}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                        role === "Admin"
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      🛡️ Admin
+                    </button>
+                    <button
+                      onClick={() => setRole("Staff")}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                        role === "Staff"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      👷 Staff
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {activeTab === "dashboard" && (
+              <DashboardSection
+                data={dashboardData}
+                onQuickRestock={handleQuickRestock}
+                onOpenAutomation={() => setActiveTab("automation")}
+              />
+            )}
+            {activeTab === "inventory" && (
+              <InventorySection
+                inventory={inventory}
+                role={role}
+                onSaveProduct={handleSaveProduct}
+                onDeleteProduct={handleDeleteProduct}
+                onQuickRestock={handleQuickRestock}
+              />
+            )}
+            {activeTab === "transactions" && (
+              <TransactionSection
+                inventory={inventory}
+                transactions={dashboardData.enrichedTransactions}
+                role={role}
+                preselectedSku={preselectedSku}
+                onSubmitTransaction={handleCreateTransaction}
+              />
+            )}
+            {activeTab === "automation" && (
+              <AutomationSection
+                webhookPayload={dashboardData.webhookPreview}
+                role={role}
+              />
+            )}
+            {activeTab === "supabase" && (
+              <SupabaseSection
+                sbStatus={sbStatus}
+                sbMessage={sbMessage}
+                todos={todos}
+                onSync={syncFromSupabase}
+                onSeedSupabase={seedToSupabase}
+                supabaseClient={supabaseClient}
+              />
+            )}
+          </main>
+
+          <footer className="bg-white border-t border-slate-200 py-4 mt-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+              <div>
+                <strong>Stok Pintar Minimarket</strong> — Supabase Endpoint:{" "}
+                <code>{SUPABASE_URL}</code>
+              </div>
+              <div className="flex items-center gap-3">
+                <span>Role Aktif: <strong>{role}</strong></span>
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    function SupabaseSection({
+      sbStatus,
+      sbMessage,
+      todos,
+      onSync,
+      onSeedSupabase,
+      supabaseClient,
+    }) {
+      const [newTodo, setNewTodo] = useState("");
+      const [copiedSql, setCopiedSql] = useState(false);
+
+      const sqlScript = `-- Jalankan di Supabase Dashboard -> SQL Editor -> New Query
+CREATE TABLE IF NOT EXISTS public.master_stok (
+    "SKU" VARCHAR(32) PRIMARY KEY,
+    "Nama_Produk" VARCHAR(150) NOT NULL,
+    "Kategori" VARCHAR(80) NOT NULL,
+    "Harga_Beli" NUMERIC(15, 2) NOT NULL DEFAULT 0,
+    "Harga_Jual" NUMERIC(15, 2) NOT NULL DEFAULT 0,
+    "Stok_Saat_Ini" INTEGER NOT NULL DEFAULT 0,
+    "Batas_Minimum" INTEGER NOT NULL DEFAULT 5,
+    "Lokasi_Rak" VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.log_transaksi (
+    "ID_Transaksi" VARCHAR(36) PRIMARY KEY,
+    "Tanggal" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "Jenis" VARCHAR(10) NOT NULL CHECK ("Jenis" IN ('Masuk', 'Keluar')),
+    "SKU" VARCHAR(32) NOT NULL REFERENCES public.master_stok("SKU") ON UPDATE CASCADE,
+    "Jumlah" INTEGER NOT NULL,
+    "Keterangan" TEXT,
+    "User" VARCHAR(80) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.todos (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+ALTER TABLE public.master_stok ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.log_transaksi ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow anon master_stok" ON public.master_stok FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon log_transaksi" ON public.log_transaksi FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon todos" ON public.todos FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);`;
+
+      const handleCopySql = () => {
+        navigator.clipboard.writeText(sqlScript);
+        setCopiedSql(true);
+        setTimeout(() => setCopiedSql(false), 2000);
+      };
+
+      const handleAddTodo = async (e) => {
+        e.preventDefault();
+        if (!newTodo.trim() || !supabaseClient) return;
+        const { error } = await supabaseClient.from("todos").insert({ name: newTodo.trim() });
+        if (error) {
+          alert(`Gagal menambah todo ke Supabase: ${error.message}`);
+          return;
+        }
+        setNewTodo("");
+        onSync();
+      };
+
+      return (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Integrasi Supabase Cloud ({SUPABASE_URL})
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">{sbMessage}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onSync}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700"
+                >
+                  🔄 Cek Koneksi Supabase
+                </button>
+                <button
+                  onClick={onSeedSupabase}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                >
+                  ☁️ Upload Data Awal ke Supabase
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Todos Table Test (Matching user's page.tsx snippet) */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+              <h3 className="text-sm font-bold text-slate-900">
+                Tes Tabel <code>todos</code> Supabase (Sesuai Snippet <code>page.tsx</code>)
+              </h3>
+              <form onSubmit={handleAddTodo} className="flex gap-2">
+                <input
+                  type="text"
+                  value={newTodo}
+                  onChange={(e) => setNewTodo(e.target.value)}
+                  placeholder="Tambah catatan tugas gudang ke tabel todos..."
+                  className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white"
+                >
+                  + Tambah
+                </button>
+              </form>
+              {todos.length === 0 ? (
+                <div className="text-xs text-slate-500 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  Belum ada baris pada tabel <code>todos</code> di Supabase (atau tabel belum dibuat).
+                </div>
+              ) : (
+                <ul className="divide-y divide-slate-200 border border-slate-200 rounded-xl overflow-hidden text-sm">
+                  {todos.map((todo) => (
+                    <li key={todo.id} className="px-4 py-2.5 bg-white flex justify-between">
+                      <span className="font-medium text-slate-800">{todo.name}</span>
+                      <span className="font-mono text-xs text-slate-400">#{todo.id}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* SQL Migration Script */}
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-sm text-slate-100 flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-emerald-400">
+                    SQL Migration untuk Supabase SQL Editor
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Salin & jalankan di Supabase SQL Editor untuk membuat tabel di Cloud
+                  </p>
+                </div>
+                <button
+                  onClick={handleCopySql}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700"
+                >
+                  {copiedSql ? "✅ Tersalin" : "Salin SQL"}
+                </button>
+              </div>
+              <pre className="text-xs font-mono text-emerald-300 overflow-x-auto flex-1 max-h-72">
+                {sqlScript}
+              </pre>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function DashboardSection({ data, onQuickRestock, onOpenAutomation }) {
+      const { ringkasan, criticalItems, dailyMovements, categorySummary } = data;
+      const maxMovement = Math.max(10, ...dailyMovements.flatMap((d) => [d.masuk, d.keluar]));
+
+      return (
+        <div className="space-y-6">
+          {criticalItems.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-100 text-amber-700 text-lg">⚠️</div>
+                <div>
+                  <h3 className="text-sm font-bold text-amber-900">
+                    Peringatan Stok Kritis: {criticalItems.length} SKU Mencapai Batas Minimum!
+                  </h3>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Otomatis menandai produk dengan{" "}
+                    <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">
+                      Stok_Saat_Ini &lt;= Batas_Minimum
+                    </code>{" "}
+                    dan menyiapkan payload webhook untuk n8n / Telegram.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onOpenAutomation}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition shrink-0"
+              >
+                🔔 Lihat / Kirim Payload Webhook
+              </button>
+            </div>
+          )}
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Total Produk (SKU)
+              </div>
+              <div className="mt-2 text-2xl font-bold text-slate-900">
+                {ringkasan.Total_Produk} <span className="text-sm font-normal text-slate-500">SKU</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Total fisik: <strong>{ringkasan.Total_Unit_Stok} unit</strong> di gudang
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Total Nilai Stok (HPP)
+              </div>
+              <div className="mt-2 text-2xl font-bold text-slate-900">
+                {formatRupiah(ringkasan.Total_Nilai_Stok)}
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Akumulasi <code>Stok_Saat_Ini × Harga_Beli</code>
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Estimasi Nilai Jual
+              </div>
+              <div className="mt-2 text-2xl font-bold text-slate-900">
+                {formatRupiah(ringkasan.Total_Nilai_Jual)}
+              </div>
+              <p className="mt-1 text-xs text-emerald-600 font-semibold">
+                Potensi margin: +{formatRupiah(ringkasan.Estimasi_Potensi_Laba)}
+              </p>
+            </div>
+
+            <div className="bg-rose-50/70 rounded-2xl border border-rose-200 p-5 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wider text-rose-600">
+                Jumlah Stok Kritis
+              </div>
+              <div className="mt-2 text-2xl font-bold text-rose-700">
+                {ringkasan.Jumlah_Stok_Kritis}{" "}
+                <span className="text-sm font-normal text-rose-600">Produk</span>
+              </div>
+              <p className="mt-1 text-xs text-rose-600">
+                Status: {ringkasan.Jumlah_Stok_Kritis > 0 ? "Perlu Restock Segera" : "Semua Aman"}
+              </p>
+            </div>
+          </div>
+
+          {/* Movement Chart & Category Breakdown */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">
+                    Grafik Pergerakan Barang (7 Hari Terakhir)
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Perbandingan Barang Masuk (Restock) vs Barang Keluar (Penjualan/Pemakaian)
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5 text-emerald-700">
+                    <span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" />
+                    Masuk ({ringkasan.Total_Transaksi_Masuk} unit)
+                  </span>
+                  <span className="flex items-center gap-1.5 text-rose-700">
+                    <span className="w-3 h-3 rounded-sm bg-rose-500 inline-block" />
+                    Keluar ({ringkasan.Total_Transaksi_Keluar} unit)
+                  </span>
+                </div>
+              </div>
+
+              <div className="h-52 flex items-end justify-between gap-2 sm:gap-4 pt-6 pb-2 px-2 border-b border-slate-100">
+                {dailyMovements.map((day) => {
+                  const masukHeight = Math.round((day.masuk / maxMovement) * 100);
+                  const keluarHeight = Math.round((day.keluar / maxMovement) * 100);
+                  return (
+                    <div key={day.tanggal} className="flex-1 flex flex-col items-center h-full justify-end">
+                      <div className="w-full flex items-end justify-center gap-1.5 h-40">
+                        <div className="flex flex-col items-center justify-end h-full w-4 sm:w-5">
+                          {day.masuk > 0 && (
+                            <span className="text-[10px] font-bold text-emerald-700 mb-1">
+                              +{day.masuk}
+                            </span>
+                          )}
+                          <div
+                            style={{ height: `${Math.max(masukHeight, day.masuk > 0 ? 10 : 3)}%` }}
+                            className={`w-full rounded-t-md ${
+                              day.masuk > 0 ? "bg-emerald-500" : "bg-slate-100"
+                            }`}
+                          />
+                        </div>
+                        <div className="flex flex-col items-center justify-end h-full w-4 sm:w-5">
+                          {day.keluar > 0 && (
+                            <span className="text-[10px] font-bold text-rose-700 mb-1">
+                              -{day.keluar}
+                            </span>
+                          )}
+                          <div
+                            style={{ height: `${Math.max(keluarHeight, day.keluar > 0 ? 10 : 3)}%` }}
+                            className={`w-full rounded-t-md ${
+                              day.keluar > 0 ? "bg-rose-500" : "bg-slate-100"
+                            }`}
+                          />
+                        </div>
+                      </div>
+                      <span className="mt-2 text-[11px] font-medium text-slate-500">{day.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <h2 className="text-base font-bold text-slate-900">Distribusi Kategori Gudang</h2>
+              <p className="text-xs text-slate-500 mb-4">Proporsi nilai stok per kategori</p>
+              <div className="space-y-3.5">
+                {categorySummary.map((cat) => {
+                  const pct =
+                    ringkasan.Total_Nilai_Stok > 0
+                      ? Math.round((cat.nilaiStok / ringkasan.Total_Nilai_Stok) * 100)
+                      : 0;
+                  return (
+                    <div key={cat.kategori} className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-semibold text-slate-800">
+                          {cat.kategori} ({cat.jumlahProduk} SKU)
+                        </span>
+                        <span className="font-bold text-slate-700">{pct}%</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-600 rounded-full"
+                          style={{ width: `${Math.max(pct, 4)}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500">{formatRupiah(cat.nilaiStok)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Critical Stock Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Daftar Peringatan Stok Kritis (Stok_Saat_Ini &lt;= Batas_Minimum)
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Klik "Restock Masuk" untuk langsung menambah stok barang dari supplier
+                </p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <th className="py-3 px-4">SKU</th>
+                    <th className="py-3 px-4">Nama Produk</th>
+                    <th className="py-3 px-4">Lokasi Rak</th>
+                    <th className="py-3 px-4 text-center">Stok Saat Ini</th>
+                    <th className="py-3 px-4 text-center">Batas Minimum</th>
+                    <th className="py-3 px-4 text-center">Status</th>
+                    <th className="py-3 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-sm">
+                  {criticalItems.map((item) => (
+                    <tr key={item.SKU} className="hover:bg-rose-50/40">
+                      <td className="py-3 px-4 font-mono text-xs font-bold">{item.SKU}</td>
+                      <td className="py-3 px-4 font-semibold text-slate-900">{item.Nama_Produk}</td>
+                      <td className="py-3 px-4 text-xs font-semibold text-slate-600">
+                        {item.Lokasi_Rak}
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold text-rose-600">
+                        {item.Stok_Saat_Ini}
+                      </td>
+                      <td className="py-3 px-4 text-center text-slate-600">{item.Batas_Minimum}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                          KRITIS
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => onQuickRestock(item.SKU)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          + Restock Masuk
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function InventorySection({ inventory, role, onSaveProduct, onDeleteProduct, onQuickRestock }) {
+      const [search, setSearch] = useState("");
+      const [statusFilter, setStatusFilter] = useState("ALL");
+      const [modalOpen, setModalOpen] = useState(false);
+      const [isNew, setIsNew] = useState(true);
+      const [formData, setFormData] = useState({
+        SKU: "",
+        Nama_Produk: "",
+        Kategori: "Sembako",
+        Harga_Beli: 0,
+        Harga_Jual: 0,
+        Stok_Saat_Ini: 0,
+        Batas_Minimum: 10,
+        Lokasi_Rak: "RAK-A1",
+      });
+
+      const filtered = inventory.filter((item) => {
+        const q = search.toLowerCase();
+        const matchQ =
+          item.SKU.toLowerCase().includes(q) ||
+          item.Nama_Produk.toLowerCase().includes(q) ||
+          item.Kategori.toLowerCase().includes(q) ||
+          item.Lokasi_Rak.toLowerCase().includes(q);
+        const isLow = item.Stok_Saat_Ini <= item.Batas_Minimum;
+        const matchStatus =
+          statusFilter === "ALL" ||
+          (statusFilter === "KRITIS" && isLow) ||
+          (statusFilter === "AMAN" && !isLow);
+        return matchQ && matchStatus;
+      });
+
+      const openAdd = () => {
+        if (role !== "Admin") return;
+        const nextNum = String(inventory.length + 1).padStart(3, "0");
+        setFormData({
+          SKU: `BRG-${nextNum}`,
+          Nama_Produk: "",
+          Kategori: "Sembako",
+          Harga_Beli: 15000,
+          Harga_Jual: 20000,
+          Stok_Saat_Ini: 25,
+          Batas_Minimum: 10,
+          Lokasi_Rak: "RAK-A1",
+        });
+        setIsNew(true);
+        setModalOpen(true);
+      };
+
+      const openEdit = (item) => {
+        if (role !== "Admin") return;
+        setFormData({ ...item });
+        setIsNew(false);
+        setModalOpen(true);
+      };
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+          await onSaveProduct(formData, isNew);
+          setModalOpen(false);
+        } catch (err) {
+          alert(err.message);
+        }
+      };
+
+      return (
+        <div className="space-y-5">
+          {role === "Staff" && (
+            <div className="bg-slate-100 border border-slate-300 rounded-xl p-3.5 text-xs text-slate-700">
+              🔒 <strong>Mode Staff Gudang (RBAC Aktif):</strong> Anda hanya dapat melihat Master
+              Stok dan mencatat transaksi. Tambah/Edit/Hapus Master_Stok dikunci untuk Role{" "}
+              <strong>Admin</strong>.
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Tabel Master_Stok (CRUD & Auto Low-Stock Tagging)
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Kolom: SKU (PK), Nama_Produk, Kategori, Harga_Beli, Harga_Jual, Stok_Saat_Ini,
+                  Batas_Minimum, Lokasi_Rak
+                </p>
+              </div>
+              <button
+                disabled={role !== "Admin"}
+                onClick={openAdd}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
+                  role === "Admin"
+                    ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                }`}
+              >
+                {role === "Admin" ? "+ Tambah Produk Baru" : "🔒 Tambah Produk (Khusus Admin)"}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari SKU, Nama Produk, Kategori, atau Rak..."
+                className="sm:col-span-2 px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
+              />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white"
+              >
+                <option value="ALL">Semua Status Stok</option>
+                <option value="KRITIS">Stok Kritis (&lt;= Batas Minimum)</option>
+                <option value="AMAN">Stok Aman (&gt; Batas Minimum)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <th className="py-3.5 px-4">SKU</th>
+                    <th className="py-3.5 px-4">Nama Produk & Kategori</th>
+                    <th className="py-3.5 px-4">Lokasi Rak</th>
+                    <th className="py-3.5 px-4 text-right">Harga Beli</th>
+                    <th className="py-3.5 px-4 text-right">Harga Jual</th>
+                    <th className="py-3.5 px-4 text-center">Stok / Min</th>
+                    <th className="py-3.5 px-4 text-center">Tag Status</th>
+                    <th className="py-3.5 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-sm">
+                  {filtered.map((item) => {
+                    const isLow = item.Stok_Saat_Ini <= item.Batas_Minimum;
+                    return (
+                      <tr key={item.SKU} className={isLow ? "bg-rose-50/30" : "hover:bg-slate-50"}>
+                        <td className="py-3.5 px-4 font-mono text-xs font-bold text-indigo-700">
+                          {item.SKU}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-slate-900">{item.Nama_Produk}</div>
+                          <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                            {item.Kategori}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-mono text-xs font-semibold text-slate-700">
+                          {item.Lokasi_Rak}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">{formatRupiah(item.Harga_Beli)}</td>
+                        <td className="py-3.5 px-4 text-right font-semibold">
+                          {formatRupiah(item.Harga_Jual)}
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`font-bold ${isLow ? "text-rose-600" : "text-slate-900"}`}>
+                            {item.Stok_Saat_Ini}
+                          </span>
+                          <span className="text-xs text-slate-400"> / {item.Batas_Minimum}</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          {isLow ? (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                              ⚠️ STOK KRITIS
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                              ✅ AMAN
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-right space-x-1.5">
+                          <button
+                            onClick={() => onQuickRestock(item.SKU)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          >
+                            +Transaksi
+                          </button>
+                          {role === "Admin" && (
+                            <>
+                              <button
+                                onClick={() => openEdit(item)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-indigo-50 text-slate-700"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => onDeleteProduct(item.SKU)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700"
+                              >
+                                Hapus
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {modalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full p-6">
+                <h3 className="text-base font-bold text-slate-900 mb-4">
+                  {isNew ? "Tambah Produk Baru (Master_Stok)" : `Edit Produk ${formData.SKU}`}
+                </h3>
+                <form onSubmit={handleSubmit} className="space-y-3.5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">SKU</label>
+                      <input
+                        type="text"
+                        required
+                        disabled={!isNew}
+                        value={formData.SKU}
+                        onChange={(e) => setFormData({ ...formData, SKU: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border text-sm font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Lokasi Rak</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.Lokasi_Rak}
+                        onChange={(e) => setFormData({ ...formData, Lokasi_Rak: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Nama Produk</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.Nama_Produk}
+                      onChange={(e) => setFormData({ ...formData, Nama_Produk: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Kategori</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.Kategori}
+                        onChange={(e) => setFormData({ ...formData, Kategori: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Harga Beli</label>
+                      <input
+                        type="number"
+                        required
+                        value={formData.Harga_Beli}
+                        onChange={(e) =>
+                          setFormData({ ...formData, Harga_Beli: Number(e.target.value) })
+                        }
+                        className="w-full px-3 py-2 rounded-xl border text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Harga Jual</label>
+                      <input
+                        type="number"
+                        required
+                        value={formData.Harga_Jual}
+                        onChange={(e) =>
+                          setFormData({ ...formData, Harga_Jual: Number(e.target.value) })
+                        }
+                        className="w-full px-3 py-2 rounded-xl border text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Stok Saat Ini</label>
+                      <input
+                        type="number"
+                        required
+                        value={formData.Stok_Saat_Ini}
+                        onChange={(e) =>
+                          setFormData({ ...formData, Stok_Saat_Ini: Number(e.target.value) })
+                        }
+                        className="w-full px-3 py-2 rounded-xl border text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Batas Minimum</label>
+                      <input
+                        type="number"
+                        required
+                        value={formData.Batas_Minimum}
+                        onChange={(e) =>
+                          setFormData({ ...formData, Batas_Minimum: Number(e.target.value) })
+                        }
+                        className="w-full px-3 py-2 rounded-xl border text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="pt-3 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setModalOpen(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white"
+                    >
+                      Simpan Produk
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function TransactionSection({
+      inventory,
+      transactions,
+      role,
+      preselectedSku,
+      onSubmitTransaction,
+    }) {
+      const [jenis, setJenis] = useState("Masuk");
+      const [sku, setSku] = useState(preselectedSku || inventory[0]?.SKU || "");
+      const [jumlah, setJumlah] = useState(10);
+      const [keterangan, setKeterangan] = useState("");
+      const [msg, setMsg] = useState(null);
+
+      useEffect(() => {
+        if (preselectedSku) {
+          setSku(preselectedSku);
+          setJenis("Masuk");
+        }
+      }, [preselectedSku]);
+
+      const selectedProduct = inventory.find((p) => p.SKU === sku);
+      const stokAwal = selectedProduct?.Stok_Saat_Ini ?? 0;
+      const stokAkhir =
+        jenis === "Masuk" ? stokAwal + Number(jumlah || 0) : stokAwal - Number(jumlah || 0);
+      const isInsufficient = jenis === "Keluar" && stokAkhir < 0;
+
+      const userLabel = role === "Admin" ? "Budi (Admin)" : "Rina (Staff Gudang)";
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+          await onSubmitTransaction({
+            Jenis: jenis,
+            SKU: sku,
+            Jumlah: Number(jumlah),
+            Keterangan:
+              keterangan.trim() ||
+              (jenis === "Masuk" ? "Restock Supplier" : "Penjualan / Pemakaian"),
+            User: userLabel,
+          });
+          setMsg(
+            `✅ Transaksi ${jenis} (${jumlah} unit) berhasil dicatat! Stok ${selectedProduct.Nama_Produk} kini: ${stokAkhir} unit.`
+          );
+          setKeterangan("");
+        } catch (err) {
+          alert(err.message);
+        }
+      };
+
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-5">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <h2 className="text-base font-bold text-slate-900">Input Log_Transaksi</h2>
+              <p className="text-xs text-slate-500 mb-4">
+                Otomatis mengalkulasi ulang <code>Stok_Saat_Ini</code> pada <code>Master_Stok</code>
+              </p>
+
+              {msg && (
+                <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800">
+                  {msg}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setJenis("Masuk")}
+                    className={`py-2.5 rounded-xl text-xs font-bold border ${
+                      jenis === "Masuk"
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-slate-50 text-slate-600"
+                    }`}
+                  >
+                    ⬇️ Barang Masuk (Restock)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setJenis("Keluar")}
+                    className={`py-2.5 rounded-xl text-xs font-bold border ${
+                      jenis === "Keluar"
+                        ? "bg-rose-600 text-white border-rose-600"
+                        : "bg-slate-50 text-slate-600"
+                    }`}
+                  >
+                    ⬆️ Barang Keluar (Jual/Pakai)
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Pilih Produk (SKU)</label>
+                  <select
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-white"
+                  >
+                    {inventory.map((i) => (
+                      <option key={i.SKU} value={i.SKU}>
+                        [{i.SKU}] {i.Nama_Produk} (Stok: {i.Stok_Saat_Ini})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Jumlah Unit</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={jumlah}
+                      onChange={(e) => setJumlah(Math.max(1, Number(e.target.value)))}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">User Pencatat</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={userLabel}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs bg-slate-100"
+                    />
+                  </div>
+                </div>
+
+                {selectedProduct && (
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                    <div className="flex justify-between font-bold text-sm">
+                      <span>
+                        Stok: {stokAwal} {jenis === "Masuk" ? "+" : "-"} {jumlah}
+                      </span>
+                      <span className={isInsufficient ? "text-rose-600" : "text-emerald-700"}>
+                        ➔ Stok Akhir: {stokAkhir} unit
+                      </span>
+                    </div>
+                    {isInsufficient && (
+                      <div className="text-rose-600 font-semibold">
+                        ⚠️ Stok tidak mencukupi untuk pengeluaran ini!
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Keterangan</label>
+                  <input
+                    type="text"
+                    value={keterangan}
+                    onChange={(e) => setKeterangan(e.target.value)}
+                    placeholder="Contoh: Restock Supplier / Penjualan Grosir"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isInsufficient}
+                  className={`w-full py-2.5 rounded-xl text-xs font-bold text-white ${
+                    isInsufficient
+                      ? "bg-slate-300"
+                      : jenis === "Masuk"
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-rose-600 hover:bg-rose-700"
+                  }`}
+                >
+                  Simpan Transaksi {jenis} & Recalculate Stok
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div className="lg:col-span-7">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-slate-200">
+                <h3 className="text-base font-bold text-slate-900">Riwayat Log_Transaksi</h3>
+                <p className="text-xs text-slate-500">
+                  Kolom: ID_Transaksi, Tanggal, Jenis (Masuk/Keluar), SKU, Jumlah, Keterangan, User
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                      <th className="py-3 px-4">ID_Transaksi</th>
+                      <th className="py-3 px-4">Jenis</th>
+                      <th className="py-3 px-4">Produk (SKU)</th>
+                      <th className="py-3 px-4 text-center">Jumlah</th>
+                      <th className="py-3 px-4">Keterangan & User</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-sm">
+                    {transactions.map((t) => (
+                      <tr key={t.ID_Transaksi} className="hover:bg-slate-50">
+                        <td className="py-3 px-4 font-mono text-xs font-bold">{t.ID_Transaksi}</td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                              t.Jenis === "Masuk"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-rose-100 text-rose-700"
+                            }`}
+                          >
+                            {t.Jenis}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-semibold">{t.Nama_Produk}</div>
+                          <div className="font-mono text-xs text-indigo-600">{t.SKU}</div>
+                        </td>
+                        <td className="py-3 px-4 text-center font-bold">
+                          {t.Jenis === "Masuk" ? `+${t.Jumlah}` : `-${t.Jumlah}`}
+                        </td>
+                        <td className="py-3 px-4 text-xs">
+                          <div>{t.Keterangan}</div>
+                          <div className="text-slate-400">Oleh: {t.User}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function AutomationSection({ webhookPayload }) {
+      const [copied, setCopied] = useState(false);
+      const copyPayload = () => {
+        navigator.clipboard.writeText(JSON.stringify(webhookPayload, null, 2));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-slate-900">
+              Preview Notifikasi Bot Telegram / WhatsApp (n8n Ready)
+            </h3>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs whitespace-pre-wrap leading-relaxed">
+              {webhookPayload.telegram_message_markdown}
+            </div>
+          </div>
+
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-sm text-slate-100 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-emerald-400">
+                Webhook JSON Payload (POST /api/alerts/webhook)
+              </h3>
+              <button
+                onClick={copyPayload}
+                className="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700"
+              >
+                {copied ? "✅ Tersalin" : "Salin JSON"}
+              </button>
+            </div>
+            <pre className="text-xs font-mono text-emerald-300 overflow-x-auto flex-1">
+              {JSON.stringify(webhookPayload, null, 2)}
+            </pre>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+{
+  "master_stok": [
+    {
+      "SKU": "BRG-001",
+      "Nama_Produk": "Beras Premium Pandan Wangi 5kg",
+      "Kategori": "Sembako",
+      "Harga_Beli": 64000,
+      "Harga_Jual": 74500,
+      "Stok_Saat_Ini": 42,
+      "Batas_Minimum": 15,
+      "Lokasi_Rak": "RAK-A1"
+    },
+    {
+      "SKU": "BRG-002",
+      "Nama_Produk": "Minyak Goreng Sawit Pouch 2L",
+      "Kategori": "Sembako",
+      "Harga_Beli": 31500,
+      "Harga_Jual": 36000,
+      "Stok_Saat_Ini": 8,
+      "Batas_Minimum": 20,
+      "Lokasi_Rak": "RAK-A2"
+    },
+    {
+      "SKU": "BRG-003",
+      "Nama_Produk": "Gula Pasir Kristal Putih 1kg",
+      "Kategori": "Sembako",
+      "Harga_Beli": 15200,
+      "Harga_Jual": 17500,
+      "Stok_Saat_Ini": 12,
+      "Batas_Minimum": 25,
+      "Lokasi_Rak": "RAK-A3"
+    },
+    {
+      "SKU": "BRG-004",
+      "Nama_Produk": "Kopi Arabika Gayo Roast Bean 250g",
+      "Kategori": "Minuman",
+      "Harga_Beli": 45000,
+      "Harga_Jual": 62000,
+      "Stok_Saat_Ini": 28,
+      "Batas_Minimum": 10,
+      "Lokasi_Rak": "RAK-B1"
+    },
+    {
+      "SKU": "BRG-005",
+      "Nama_Produk": "Susu Evaporasi Full Cream 400g",
+      "Kategori": "Bahan Baku",
+      "Harga_Beli": 14800,
+      "Harga_Jual": 18500,
+      "Stok_Saat_Ini": 5,
+      "Batas_Minimum": 12,
+      "Lokasi_Rak": "RAK-B2"
+    },
+    {
+      "SKU": "BRG-006",
+      "Nama_Produk": "Cup Plastik Injection 16oz (Pak 50pcs)",
+      "Kategori": "Kemasan",
+      "Harga_Beli": 22000,
+      "Harga_Jual": 29000,
+      "Stok_Saat_Ini": 35,
+      "Batas_Minimum": 10,
+      "Lokasi_Rak": "RAK-C1"
+    },
+    {
+      "SKU": "BRG-007",
+      "Nama_Produk": "Paper Bowl Kraft 650ml + Lid (Pak 25pcs)",
+      "Kategori": "Kemasan",
+      "Harga_Beli": 27500,
+      "Harga_Jual": 35000,
+      "Stok_Saat_Ini": 6,
+      "Batas_Minimum": 10,
+      "Lokasi_Rak": "RAK-C2"
+    },
+    {
+      "SKU": "BRG-008",
+      "Nama_Produk": "Tepung Terigu Protein Tinggi 1kg",
+      "Kategori": "Bahan Baku",
+      "Harga_Beli": 11800,
+      "Harga_Jual": 14500,
+      "Stok_Saat_Ini": 54,
+      "Batas_Minimum": 20,
+      "Lokasi_Rak": "RAK-A4"
+    }
+  ],
+  "log_transaksi": [
+    {
+      "ID_Transaksi": "TRX-20261112-001",
+      "Tanggal": "2026-11-12T08:30:00.000Z",
+      "Jenis": "Masuk",
+      "SKU": "BRG-001",
+      "Jumlah": 30,
+      "Keterangan": "Restock mingguan Supplier Beras Makmur",
+      "User": "Budi (Admin)"
+    },
+    {
+      "ID_Transaksi": "TRX-20261113-002",
+      "Tanggal": "2026-11-13T10:15:00.000Z",
+      "Jenis": "Keluar",
+      "SKU": "BRG-002",
+      "Jumlah": 18,
+      "Keterangan": "Pesanan Grosir Warung Bu Siti",
+      "User": "Rina (Staff Gudang)"
+    },
+    {
+      "ID_Transaksi": "TRX-20261114-003",
+      "Tanggal": "2026-11-14T13:45:00.000Z",
+      "Jenis": "Masuk",
+      "SKU": "BRG-004",
+      "Jumlah": 20,
+      "Keterangan": "Pengiriman Roastery Aceh Gayo",
+      "User": "Budi (Admin)"
+    },
+    {
+      "ID_Transaksi": "TRX-20261115-004",
+      "Tanggal": "2026-11-15T15:20:00.000Z",
+      "Jenis": "Keluar",
+      "SKU": "BRG-003",
+      "Jumlah": 15,
+      "Keterangan": "Penjualan toko & pemakaian produksi",
+      "User": "Rina (Staff Gudang)"
+    },
+    {
+      "ID_Transaksi": "TRX-20261116-005",
+      "Tanggal": "2026-11-16T09:10:00.000Z",
+      "Jenis": "Keluar",
+      "SKU": "BRG-005",
+      "Jumlah": 10,
+      "Keterangan": "Pengiriman cabang Kedai Kopi",
+      "User": "Rina (Staff Gudang)"
+    },
+    {
+      "ID_Transaksi": "TRX-20261117-006",
+      "Tanggal": "2026-11-17T11:05:00.000Z",
+      "Jenis": "Masuk",
+      "SKU": "BRG-008",
+      "Jumlah": 25,
+      "Keterangan": "Restock Distributor Bogasari",
+      "User": "Budi (Admin)"
+    },
+    {
+      "ID_Transaksi": "TRX-20261118-007",
+      "Tanggal": "2026-11-18T08:00:00.000Z",
+      "Jenis": "Keluar",
+      "SKU": "BRG-007",
+      "Jumlah": 8,
+      "Keterangan": "Order katering harian pelanggan",
+      "User": "Rina (Staff Gudang)"
+    }
+  ]
+}
