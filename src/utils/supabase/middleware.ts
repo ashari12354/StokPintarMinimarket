@@ -16,16 +16,16 @@ export const createClient = (request: NextRequest) => {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet: any) {
-          cookiesToSet.forEach(({ name, value }: { name: string; value: string }) =>
-            request.cookies.set(name, value)
-          );
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, any> }>) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
           });
-          cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options: any }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => {
+            if (options) {
+              supabaseResponse.cookies.set(name, value, options);
+            }
+          });
         },
       },
     }
