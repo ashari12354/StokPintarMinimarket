@@ -8,7 +8,6 @@ import {
   Send,
   Terminal,
   MessageSquare,
-  AlertTriangle,
 } from "lucide-react";
 import { WebhookPayload, UserRole } from "@/types/inventory";
 import { formatRupiah } from "./DashboardView";

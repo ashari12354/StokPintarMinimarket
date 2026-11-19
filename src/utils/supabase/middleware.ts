@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-export const createClient = (request: NextRequest) => {
+export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let supabaseResponse = NextResponse.next({
     request: {
       headers: request.headers,
@@ -16,20 +16,44 @@ export const createClient = (request: NextRequest) => {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, any> }>) {
+        setAll(
+          cookiesToSet: Array<{
+            name: string;
+            value: string;
+            options?: Record<string, any>;
+          }>
+        ) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
           });
-          cookiesToSet.forEach(({ name, value, options }) => {
-            if (options) {
-              supabaseResponse.cookies.set(name, value, options);
-            }
-          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
         },
       },
     }
   );
 
-  return supabase;
-};
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  if (!user && !pathname.startsWith("/login")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && pathname.startsWith("/login")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  return supabaseResponse;
+}
+
+export const createClient = updateSession;

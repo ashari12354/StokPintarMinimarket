@@ -1,0 +1,17 @@
+warning: in the working copy of 'src/utils/supabase/server.ts', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/utils/supabase/server.ts b/src/utils/supabase/server.ts[m
+[1mindex b566566..65909ec 100644[m
+[1m--- a/src/utils/supabase/server.ts[m
+[1m+++ b/src/utils/supabase/server.ts[m
+[36m@@ -13,9 +13,9 @@[m [mexport const createClient = (cookieStore: Awaited<ReturnType<typeof cookies>>) =[m
+         getAll() {[m
+           return cookieStore.getAll();[m
+         },[m
+[31m-        setAll(cookiesToSet) {[m
+[32m+[m[32m        setAll(cookiesToSet: any) {[m
+           try {[m
+[31m-            cookiesToSet.forEach(({ name, value, options }) =>[m
+[32m+[m[32m            cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: any }) =>[m
+               cookieStore.set(name, value, options)[m
+             );[m
+           } catch {[m
